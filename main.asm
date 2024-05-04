@@ -8,6 +8,7 @@ res:	.space 2
 image:	.space BMP_FILE_SIZE
 
 fname:	.asciz "source.bmp"
+msg:	.asciz "\n marker found!"
 y: 	.byte 240
 	.text
 	
@@ -18,7 +19,6 @@ main:
 find_black:
 	li a0, 0
 	li a1, 0
-	li s9, 0x00000000
 	li s8, 319
 	li s4, 240
 
@@ -26,7 +26,7 @@ black_loop_row:
 	beq a0, s8, next_row
 	mv s10, a0
 	jal get_pixel
-	beq a0, s9, black
+	beq a0, zero, black
 	addi a0, a0, 1
 	mv a0, s10
 	addi a0, a0, 1
@@ -54,7 +54,7 @@ go_right:
 	mv s7, ra
 right_loop:
 	jal get_pixel
-	bne a0, s9 end_right
+	bne a0, zero end_right
 	addi s6, s6 1
 	addi s10, s10, 1
 	mv a0, s10
@@ -65,16 +65,37 @@ end_right:
 	addi s10, s10, -1
 	mv t5, a1
 	mv a3, s10
-	srli s6, s6, 1
-	ret
-	
-go_up:
-	mv s7, ra	
+bottom_frame:
+	sub s10, s10, s6
+	addi s10, s10, 1
+	addi a1, a1, -1
 	mv a0, s10
+b_loop:
+	bgt a0, a3, end_bf
+	jal get_pixel
+	beq a0, zero, not_found
+	addi s10, s10, 1
+	mv a0, s10
+	j b_loop
+
+end_bf:
+	mv a0, a3
+	mv a1, t5
+	srli s6, s6, 1
+	mv ra, s7
+	ret
+
+
+
+go_up:
+	mv s7, ra
+	mv s10, a3
+	mv a0, a3
+	mv a1, t5
 	addi s5, s5, 1
 up_loop:
 	jal get_pixel
-	bne a0, s9, not_found
+	bne a0, zero, not_found
 	beq s5, s6, end_up
 	mv a0, s10
 	addi a1, a1, 1
@@ -85,7 +106,7 @@ end_up:
 	addi a1, a1, 1
 	mv a0, s10
 	jal get_pixel
-	beq a0, s9, not_found
+	beq a0, zero, not_found
 	mv a5, a1
 	j right_frame
 
@@ -97,7 +118,7 @@ right_frame:
 rf_loop:
 	jal get_pixel
 	beq a5, a1, end_rf
-	beq a0, s9, not_found
+	beq a0, zero, not_found
 	addi a1, a1, 1
 	mv a0, s10
 	j rf_loop
@@ -110,39 +131,134 @@ end_rf:
 go_left:
 	mv s7, ra
 	addi a1, a1, -1
-	slli s6, s6, 1
-	sub s5, s10, s6
-	addi s5, s5, 1
+	slli s6, s6, 1 #bottom length
+	sub s5, s10, s6 #main_X - bl
+	addi s5, s5, 1 #correction
+	mv a6, s5
 	mv a0, s10
 left_loop:
 	ble a0, s5, not_found
 	jal get_pixel
-	bne a0, s9, go_down
+	bne a0, zero, up_right_frame
 	addi s10, s10, -1
 	mv a0, s10
 	j left_loop
+	
+up_right_frame:
+	mv s6, s10
+	mv s10, a3
+	addi a1, a1, 1
+	mv a0, s10
+	
+urf_loop:
+	beq s10, s6 go_down
+	jal get_pixel
+	beq a0, zero, not_found
+	addi s10, s10, -1
+	mv a0, s10
+	j urf_loop
+	
+	
+	
 
 go_down:
+	addi s10, s10, 1
 	mv a0, s10
-	sub s5, a3, s10
+	addi a1, a1, -1
+	mv s9, a1
+	sub s5, a3, s10   #arm width
 	add a4, t5, s5
 down_loop:
-	beq a1, a4, left_again
-	blt a1, t5, not_found
+	beq a1, a4, up_left_frame
 	jal get_pixel
-	beq a0, s9, not_found
-	addi a1, a1, -1
+	bne a0, zero, not_found
 	mv a0, s10
+	addi a1, a1, -1
 	j down_loop
+	
+	#blt a1, t5, not_found
+	#jal get_pixel
+	#beq a0, zero, not_found
+	#addi a1, a1, -1
+	#mv a0, s10
+	#j down_loop
+	
+up_left_frame:
+	addi s10, s10, -1
+	mv a1, s9
+	mv a0, s10
+ulf_loop:
+	beq a1, a4, left_again
+	jal get_pixel
+	beq a0, zero, not_found
+	mv a0, s10
+	addi a1, a1, -1
+	j ulf_loop
 	
 left_again:
 	mv a0, s10
+	mv s9, s10
+la_loop:
+	blt a0, a6, la_frame
+	jal get_pixel
+	bne a0, zero, not_found
+	addi s10, s10, -1
+	mv a0, s10
+	j la_loop
+	
+la_frame:
 	addi a1, a1, 1
+	mv s10, s9
+	mv a0, s10
+laf_loop:
+	blt a0, a6, down_again
+	jal get_pixel
+	beq a0, zero, not_found
+	addi s10, s10, -1
+	mv a0, s10
+	j laf_loop
 	
+down_again:
+	addi s10, s10, 1
+	addi a1, a1, -1
+	mv s9, a1
+	mv a0, s10
+da_loop:
+	blt a1, t5, da_frame
+	jal get_pixel
+	bne a0, zero, not_found
+	addi a1, a1, -1
+	mv a0, s10
+	j da_loop
 	
-	
-	
-	
+da_frame:
+	mv a1, s9
+	addi s10, s10, -1
+	mv a0, s10
+daf_loop:
+	blt a1, t5, marker_found
+	jal get_pixel
+	beq a0, zero, not_found
+	addi a1, a1, -1
+	mv a0, s10
+	j daf_loop
+
+marker_found:
+	li a7, 4
+	li a1, 80
+	la a0, msg
+	ecall
+	li a7, 1
+	mv a0, a3
+	ecall
+	li a7, 11
+	li a0, ','
+	ecall
+	li a7, 1
+	mv a0, t5
+	ecall
+
+
 not_found:
 	addi s10, s10, 1
 	mv a0, s10
