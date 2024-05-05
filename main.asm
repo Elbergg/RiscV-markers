@@ -244,6 +244,8 @@ daf_loop:
 	j daf_loop
 
 marker_found:
+	sub s0, s4, t5
+	addi s0, s0, -1
 	li a7, 4
 	li a1, 80
 	la a0, msg
@@ -255,14 +257,17 @@ marker_found:
 	li a0, ','
 	ecall
 	li a7, 1
-	mv a0, t5
+	mv a0, s0
 	ecall
+	j not_found
 
 
 not_found:
-	addi s10, s10, 1
-	mv a0, s10
+	mv a0, a3
+	addi a0, a0, 1
 	mv a1, t5
+	li s6, 0
+	li s5, 0
 	j black_loop_row
 	
 		
