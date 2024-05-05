@@ -17,12 +17,19 @@ main:
 	jal find_black
 	
 find_black:
+	la t1, image		#adress of file offset to pixel array
+	addi t1,t1,10
+	lw s2, (t1)		#file offset to pixel array in $t2
+	la t1, image		#adress of bitmap
+	add s2, t1, s2		#adress of pixel array in $t2
+	
 	li a0, 0
 	li a1, 0
 	li s8, 319
 	li s4, 240
 
 black_loop_row:
+	bge a1, s4, exit
 	beq a0, s8, next_row
 	mv s10, a0
 	jal get_pixel
@@ -53,13 +60,17 @@ exit:	li 	a7,10		#Terminate the program
 go_right:
 	mv s7, ra
 right_loop:
+	beq a0, s8, right_border
 	jal get_pixel
 	bne a0, zero end_right
 	addi s6, s6 1
 	addi s10, s10, 1
 	mv a0, s10
 	j right_loop
-
+right_border:
+	addi a1, a1, 1
+	li a0, 0
+	j black_loop_row
 end_right:
 	mv ra, s7
 	addi s10, s10, -1
@@ -94,6 +105,7 @@ go_up:
 	mv a1, t5
 	addi s5, s5, 1
 up_loop:
+	beq a1, s4, not_found
 	jal get_pixel
 	bne a0, zero, not_found
 	beq s5, s6, end_up
@@ -281,12 +293,6 @@ get_pixel:
 #return value:
 #	a0 - 0RGB - pixel color
 
-	la t1, image		#adress of file offset to pixel array
-	addi t1,t1,10
-	lw t2, (t1)		#file offset to pixel array in $t2
-	la t1, image		#adress of bitmap
-	add t2, t1, t2		#adress of pixel array in $t2
-	
 	#pixel address calculation
 	li t4,BYTES_PER_ROW
 	mul t1, a1, t4 		#t1= y*BYTES_PER_ROW
@@ -294,7 +300,7 @@ get_pixel:
 	slli a0, a0, 1
 	add t3, t3, a0		#$t3= 3*x
 	add t1, t1, t3		#$t1 = 3x + y*BYTES_PER_ROW
-	add t2, t2, t1	#pixel address 
+	add t2, s2, t1	#pixel address 
 	
 	#get color
 	lbu a0,(t2)		#load B
