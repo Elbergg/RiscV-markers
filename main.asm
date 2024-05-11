@@ -47,7 +47,7 @@ black:
 	mv a0, s10		#change a0 to x coordinate
 	jal go_right		#go right until not black
 	jal go_up		#go up until not black
-	jal go_left
+	jal go_left		#go left until not black
 	j exit
 	
 exit:	li 	a7,10		#Terminate the program
@@ -127,15 +127,15 @@ right_frame:
 	
 rf_loop:
 	jal get_pixel		#get color of pixel at a0,a1
-	beq a5, a1, end_rf
-	beq a0, zero, not_found
-	addi a1, a1, 1
+	beq a5, a1, end_rf	#if y coordinate equal to saved a5, end right frame
+	beq a0, zero, not_found	#if pixel is black, not found
+	addi a1, a1, 1		#go one row up
 	mv a0, s10
 	j rf_loop
 	
 end_rf:
-	addi s10, s10, -1
-	mv ra, s7
+	addi s10, s10, -1       #dec x coord
+	mv ra, s7		#load ra with saved value from s7
 	ret
 	
 go_left:
@@ -146,15 +146,40 @@ go_left:
 	addi s5, s5, 1 #correction
 	mv a6, s5
 	mv a0, s10
+	mv s11, s7 #check this
 left_loop:
 	ble a0, s5, not_found
 	jal get_pixel
 	bne a0, zero, up_right_frame
+	mv a0, s10
+	jal check_down
 	addi s10, s10, -1
 	mv a0, s10
 	j left_loop
 	
+check_down:
+	mv t6, ra
+cd_loop:
+	addi a1, a1, -1
+	beq a1, t5, end_cd
+	jal get_pixel
+	bne a0, zero, not_found
+	mv a0, s10
+	j cd_loop
+	
+end_cd:
+	mv ra, t6
+	srli s6, s6, 1
+	add a1, a1, s6
+	slli s6, s6, 1
+	addi a1, a1, -1
+	ret
+	
+	
+
+	
 up_right_frame:
+	mv s7, s11
 	mv s6, s10
 	mv s10, a3
 	addi a1, a1, 1
