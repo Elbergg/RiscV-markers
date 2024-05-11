@@ -139,57 +139,56 @@ end_rf:
 	ret
 	
 go_left:
-	mv s7, ra
-	addi a1, a1, -1
+	mv s7, ra		#save return address
+	addi a1, a1, -1		#dec row by one
 	slli s6, s6, 1 #bottom length
 	sub s5, s10, s6 #main_X - bl
 	addi s5, s5, 1 #correction
-	mv a6, s5
+	mv a6, s5	
 	mv a0, s10
+	srli s6, s6, 1		#divide s6 by 2
 	mv s11, s7 #check this
 left_loop:
-	ble a0, s5, not_found
-	jal get_pixel
-	bne a0, zero, up_right_frame
-	mv a0, s10
-	jal check_down
-	addi s10, s10, -1
-	mv a0, s10
+	ble a0, s5, not_found	#not square
+	jal get_pixel		#get color at a0,a1
+	bne a0, zero, up_right_frame	#if not black, check ur frame
+	mv a0, s10		
+	jal check_down		#check if all the pixels beneath the current one are black as well
+	addi s10, s10, -1	#decrement s10, we are going left
+	mv a0, s10		
 	j left_loop
 	
 check_down:
-	mv t6, ra
+	mv t6, ra		#save return address
 cd_loop:
-	addi a1, a1, -1
-	beq a1, t5, end_cd
-	jal get_pixel
-	bne a0, zero, not_found
+	addi a1, a1, -1		#go down
+	beq a1, t5, end_cd	#if we reached the bottom, end
+	jal get_pixel		
+	bne a0, zero, not_found	#if pixel not black, not found
 	mv a0, s10
 	j cd_loop
 	
 end_cd:
-	mv ra, t6
-	srli s6, s6, 1
-	add a1, a1, s6
-	slli s6, s6, 1
-	addi a1, a1, -1
+	mv ra, t6		#load ra with the right address
+	add a1, a1, s6		#add s6 to a1 to reach previous row
+	addi a1, a1, -1		#correction
 	ret
 	
 	
 
 	
 up_right_frame:
-	mv s7, s11
-	mv s6, s10
-	mv s10, a3
-	addi a1, a1, 1
+	mv s7, s11		#correct the saved value in s7
+	mv s6, s10		#load s6 with current x coord
+	mv s10, a3		#load s10 with return x cord
+	addi a1, a1, 1		#go one row up
 	mv a0, s10
 	
 urf_loop:
-	beq s10, s6 go_down
+	beq s10, s6 go_down	#if reached end of urf, go down
 	jal get_pixel
-	beq a0, zero, not_found
-	addi s10, s10, -1
+	beq a0, zero, not_found	#if pixel is black, not found
+	addi s10, s10, -1	#go left
 	mv a0, s10
 	j urf_loop
 	
@@ -197,18 +196,18 @@ urf_loop:
 	
 
 go_down:
-	addi s10, s10, 1
+	addi s10, s10, 1	#correct x coord
 	mv a0, s10
-	addi a1, a1, -1
-	mv s9, a1
-	sub s5, a3, s10   #arm width
-	add a4, t5, s5
+	addi a1, a1, -1		#correct y coord
+	mv s9, a1		#save y coord
+	sub s5, a3, s10   	#arm width
+	add a4, t5, s5		#a point at which inner arms should intersect
 down_loop:
-	beq a1, a4, up_left_frame
+	beq a1, a4, up_left_frame	# if that point is reached, go to ulf
 	jal get_pixel
-	bne a0, zero, not_found
-	mv a0, s10
-	addi a1, a1, -1
+	bne a0, zero, not_found		#if pixel not black, not found
+	mv a0, s10		
+	addi a1, a1, -1		#go down
 	j down_loop
 	
 	#blt a1, t5, not_found
@@ -219,91 +218,91 @@ down_loop:
 	#j down_loop
 	
 up_left_frame:
-	addi s10, s10, -1
-	mv a1, s9
+	addi s10, s10, -1	#go left
+	mv a1, s9		#load previous y value
 	mv a0, s10
 ulf_loop:
-	beq a1, a4, left_again
-	jal get_pixel
-	beq a0, zero, not_found
-	mv a0, s10
-	addi a1, a1, -1
+	beq a1, a4, left_again	#it reached intersection point, go left again
+	jal get_pixel		
+	beq a0, zero, not_found	#if pixel is black, not found
+	mv a0, s10		
+	addi a1, a1, -1		#go down
 	j ulf_loop
 	
 left_again:
-	mv a0, s10
-	mv s9, s10
+	mv a0, s10		
+	mv s9, s10		#save x coord
 la_loop:
-	blt a0, a6, la_frame
-	jal get_pixel
-	bne a0, zero, not_found
-	addi s10, s10, -1
+	blt a0, a6, la_frame	#if it reached the left border, got o laframe
+	jal get_pixel		
+	bne a0, zero, not_found	#if pixel not black, not found
+	addi s10, s10, -1	#go left
 	mv a0, s10
 	j la_loop
 	
 la_frame:
-	addi a1, a1, 1
-	mv s10, s9
+	addi a1, a1, 1		#go one row up
+	mv s10, s9		#load previously saved x coord
 	mv a0, s10
 laf_loop:
-	blt a0, a6, down_again
-	jal get_pixel
-	beq a0, zero, not_found
-	addi s10, s10, -1
+	blt a0, a6, down_again	#if reached left border, go down again
+	jal get_pixel		
+	beq a0, zero, not_found	#if the pixel is black, not found
+	addi s10, s10, -1	#go left
 	mv a0, s10
 	j laf_loop
 	
 down_again:
-	addi s10, s10, 1
-	addi a1, a1, -1
-	mv s9, a1
+	addi s10, s10, 1	#correct x cord
+	addi a1, a1, -1		#correct y cord
+	mv s9, a1		#save y cord
 	mv a0, s10
 da_loop:
-	blt a1, t5, da_frame
+	blt a1, t5, da_frame	#if reached bottom, down_again frame
 	jal get_pixel
-	bne a0, zero, not_found
-	addi a1, a1, -1
+	bne a0, zero, not_found	#if pixel is not zero, not found
+	addi a1, a1, -1		#go down
 	mv a0, s10
 	j da_loop
 	
 da_frame:
-	mv a1, s9
-	addi s10, s10, -1
+	mv a1, s9		#load previously saved y cord
+	addi s10, s10, -1	#correct x cord
 	mv a0, s10
 daf_loop:
-	blt a1, t5, marker_found
+	blt a1, t5, marker_found	#if reached bottom, marker found
 	jal get_pixel
-	beq a0, zero, not_found
-	addi a1, a1, -1
+	beq a0, zero, not_found	#if pixel is black, not found
+	addi a1, a1, -1		#go down
 	mv a0, s10
 	j daf_loop
 
 marker_found:
-	sub s0, s4, t5
-	addi s0, s0, -1
-	li a7, 4
+	sub s0, s4, t5		
+	addi s0, s0, -1		#correct y cords
+	li a7, 4		#print found msg
 	li a1, 80
 	la a0, msg
-	ecall
-	li a7, 1
+	ecall		
+	li a7, 1		#print x cord
 	mv a0, a3
 	ecall
-	li a7, 11
+	li a7, 11		#print ','
 	li a0, ','
 	ecall
-	li a7, 1
+	li a7, 1		#print y cord
 	mv a0, s0
 	ecall
-	j not_found
+	j not_found		#continue looking
 
 
 not_found:
-	mv s10, a3
-	addi s10, s10, 1
-	mv a1, t5
-	li s6, 0
+	mv s10, a3		#load s10 with potential return value - x cord
+	addi s10, s10, 1	#go one right
+	mv a1, t5		#load previously saved y return cord
+	li s6, 0		#zeroing out important registers
 	li s5, 0
-	j black_loop_row
+	j black_loop_row	#Continue searching
 	
 		
 	
