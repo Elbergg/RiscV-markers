@@ -252,6 +252,7 @@ laf_loop:
 	mv a0, s10
 	j laf_loop
 	
+	
 down_again:
 	addi s10, s10, 1	#correct x cord
 	addi a1, a1, -1		#correct y cord
@@ -261,10 +262,30 @@ da_loop:
 	blt a1, t5, da_frame	#if reached bottom, down_again frame
 	jal get_pixel
 	bne a0, zero, not_found	#if pixel is not zero, not found
+	jal check_right
 	addi a1, a1, -1		#go down
 	mv a0, s10
 	j da_loop
 	
+	
+check_right:
+	mv t6, ra	#save return address
+	sub s1, a3, s5	#calculate x cord of inner intersection
+	mv s0, s10	#save x cord
+cr_loop:
+	addi s10, s10, 1	#go right
+	mv a0, s10		
+	beq a0, s1, end_cr	#if we reached the intersection line, end
+	jal get_pixel		
+	bne a0, zero, not_found	#if pixel not black, not found
+	j cr_loop
+	
+end_cr:
+	mv ra, t6		#load ra with the right address
+	mv s10, s0		#return x cord
+	ret
+		
+
 da_frame:
 	mv a1, s9		#load previously saved y cord
 	addi s10, s10, -1	#correct x cord
