@@ -15,7 +15,19 @@ y: 	.byte 240
 main:
 	jal read_bmp
 	jal find_black
-	
+	addi sp, sp, -48		#push $s1
+	sw s1, 0(sp)
+	sw s2, 4(sp)
+	sw s3, 8(sp)
+	sw s4, 12(sp)
+	sw s5, 16(sp)
+	sw s6, 20(sp)
+	sw s7, 24(sp)
+	sw s8, 28(sp)
+	sw s9, 32(sp)
+	sw s10, 36(sp)
+	sw s11, 40(sp)
+	sw s0, 44(sp)	
 find_black:
 	la t1, image		#adress of file offset to pixel array
 	addi t1,t1,10
@@ -50,7 +62,21 @@ black:
 	jal go_left		#go left until not black
 	j exit
 	
-exit:	li 	a7,10		#Terminate the program
+exit:
+	lw s0, (sp)
+	lw s11, 4(sp)
+	lw s10, 8(sp)
+	lw s9, 12(sp)
+	lw s8, 16(sp)
+	lw s7, 20(sp)
+	lw s6, 24(sp)
+	lw s5, 28(sp)
+	lw s4, 32(sp)
+	lw s3, 36(sp)
+	lw s2, 40(sp)
+	lw s1, 44(sp)
+	addi sp, sp, 48
+	li 	a7,10		#Terminate the program
 	ecall
 	
 	
@@ -391,71 +417,3 @@ read_bmp:
 	addi sp, sp, 4
 	jr ra
 	
-save_bmp:
-#description: 
-#	saves bmp file stored in memory to a file
-#arguments:
-#	none
-#return value: none
-	addi sp, sp, -4		#push s1
-	sw s1, (sp)
-#open file
-	li a7, 1024
-        la a0, fname		#file name 
-        li a1, 1		#flags: 1-write file
-        ecall
-	mv s1, a0      # save the file descriptor
-	
-#check for errors - if the file was opened
-#...
-
-#save file
-	li a7, 64
-	mv a0, s1
-	la a1, image
-	li a2, BMP_FILE_SIZE
-	ecall
-
-#close file
-	li a7, 57
-	mv a0, s1
-        ecall
-	
-	lw s1, (sp)		#restore (pop) $s1
-	addi sp, sp, 4
-	jr ra
-
-
-# ============================================================================
-put_pixel:
-#description: 
-#	sets the color of specified pixel
-#arguments:
-#	a0 - x coordinate
-#	a1 - y coordinate - (0,0) - bottom left corner
-#	a2 - 0RGB - pixel color
-#return value: none
-
-	la t1, image	#adress of file offset to pixel array
-	addi t1,t1,10
-	lw t2, (t1)		#file offset to pixel array in $t2
-	la t1, image		#adress of bitmap
-	add t2, t1, t2	#adress of pixel array in $t2
-	
-	#pixel address calculation
-	li t4,BYTES_PER_ROW
-	mul t1, a1, t4 #t1= y*BYTES_PER_ROW
-	mv t3, a0		
-	slli a0, a0, 1
-	add t3, t3, a0	#$t3= 3*x
-	add t1, t1, t3	#$t1 = 3x + y*BYTES_PER_ROW
-	add t2, t2, t1	#pixel address 
-	
-	#set new color
-	sb a2,(t2)		#store B
-	srli a2,a2,8
-	sb a2,1(t2)		#store G
-	srli a2,a2,8
-	sb a2,2(t2)		#store R
-
-	jr ra
