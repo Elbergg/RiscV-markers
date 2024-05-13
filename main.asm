@@ -103,6 +103,7 @@ end_right:
 	mv a3, s10		#save x cord to a3
 
 bottom_frame:
+	beq a1, zero, end_bf
 	sub s10, s10, s6	#go back to beggining
 	addi s10, s10, 1	#add 1 for correction
 	addi a1, a1, -1		#check the row under the original black one
@@ -118,6 +119,8 @@ b_loop:
 end_bf:
 	mv a0, a3		#set a0 and a1 to previously saved values 
 	mv a1, t5
+	andi s5, s6, 1
+	bnez s5, not_found
 	srli s6, s6, 1		#divide width by 2
 	mv ra, s7		#move s7 to return register
 	ret
@@ -145,7 +148,8 @@ end_up:
 	mv a0, s10
 	jal get_pixel		#get value of pixel at a0,a1
 	mv a5, a1		#save a1 value to a5
-	bge a1, s4, right_frame
+	beq s10, s8, go_left
+	bge a1, s4, go_left
 	beq a0, zero, not_found	#if its black, not found
 	
 	j right_frame
@@ -320,6 +324,7 @@ end_cr:
 		
 
 da_frame:
+	beq s10, zero, marker_found
 	mv a1, s9		#load previously saved y cord
 	addi s10, s10, -1	#correct x cord
 	mv a0, s10
