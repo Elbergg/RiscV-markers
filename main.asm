@@ -9,6 +9,7 @@ image:	.space BMP_FILE_SIZE
 
 fname:	.asciz "source.bmp"
 msg:	.asciz "\n marker found!"
+final:	.asciz "\n num of markers: "
 y: 	.byte 240
 	.text
 	
@@ -63,6 +64,13 @@ black:
 	j exit
 	
 exit:
+	li a7, 4		#print final msg
+	li a1, 80
+	la a0, final
+	ecall		
+	li a7, 1		#print num of markers
+	mv a0, s3
+	ecall
 	lw s0, (sp)
 	lw s11, 4(sp)
 	lw s10, 8(sp)
@@ -352,6 +360,7 @@ marker_found:
 	li a7, 1		#print y cord
 	mv a0, s0
 	ecall
+	addi s3, s3, 1
 	j not_found		#continue looking
 
 
